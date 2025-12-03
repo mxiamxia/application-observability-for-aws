@@ -284,11 +284,11 @@ describe('MCPConfigManager', () => {
 
       const allowedTools = manager.getAllowedToolsForClaude();
 
-      expect(allowedTools).toContain('Read(/workspace/repo/**)');
-      expect(allowedTools).toContain('Edit(/workspace/repo/**)');
-      expect(allowedTools).toContain('Glob(/workspace/repo/**)');
-      expect(allowedTools).toContain('Grep(/workspace/repo/**)');
-      expect(allowedTools).toContain('Bash(ls:/workspace/repo/**)');
+      expect(allowedTools).toContain('Read(//workspace/repo/**)');
+      expect(allowedTools).toContain('Edit(//workspace/repo/**)');
+      expect(allowedTools).toContain('Glob(//workspace/repo/**)');
+      expect(allowedTools).toContain('Grep(//workspace/repo/**)');
+      expect(allowedTools).toContain('Bash(ls:*)');
     });
 
     test('includes Application Signals tools when AWS credentials present', () => {
@@ -300,7 +300,7 @@ describe('MCPConfigManager', () => {
       const allowedTools = manager.getAllowedToolsForClaude();
 
       expect(allowedTools).toContain('mcp__applicationsignals__list_monitored_services');
-      expect(allowedTools).toContain('Read(/workspace/repo/**)');
+      expect(allowedTools).toContain('Read(//workspace/repo/**)');
     });
 
     test('includes CloudWatch tools when enabled and AWS credentials present', () => {
@@ -325,7 +325,7 @@ describe('MCPConfigManager', () => {
       const allowedTools = manager.getAllowedToolsForClaude();
 
       expect(allowedTools).toContain('mcp__github__create_pull_request');
-      expect(allowedTools).toContain('Read(/workspace/repo/**)');
+      expect(allowedTools).toContain('Read(//workspace/repo/**)');
     });
 
     test('includes all tools when all credentials present', () => {
@@ -338,7 +338,7 @@ describe('MCPConfigManager', () => {
       const allowedTools = manager.getAllowedToolsForClaude();
 
       // Should include base tools
-      expect(allowedTools).toContain('Read(/workspace/repo/**)');
+      expect(allowedTools).toContain('Read(//workspace/repo/**)');
       // Should include Application Signals tools
       expect(allowedTools).toContain('mcp__applicationsignals__list_monitored_services');
       // Should include CloudWatch tools
@@ -356,8 +356,8 @@ describe('MCPConfigManager', () => {
       const allowedTools = manager.getAllowedToolsForClaude();
       const cwd = process.cwd();
 
-      expect(allowedTools).toContain(`Read(${cwd}/**)`);
-      expect(allowedTools).toContain(`Bash(ls:${cwd}/**)`);
+      expect(allowedTools).toContain(`Read(/${cwd}/**)`);
+      expect(allowedTools).toContain('Bash(ls:*)');
     });
 
     test('returns comma-separated string', () => {

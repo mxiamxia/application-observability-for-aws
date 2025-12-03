@@ -109,6 +109,7 @@ async function run() {
     const hasPermissions = await checkUserPermissions(octokit, context, issueNumber, allowedNonWriteUsers);
     if (!hasPermissions) {
       core.setOutput('contains_trigger', 'false');
+      core.setFailed('User does not have permission to trigger this action. Write access or explicit allowlist is required.');
       return;
     }
 
@@ -253,6 +254,8 @@ async function run() {
 
       try {
         const finalPrompt = await createGeneralPrompt(context, repoInfo, cleanedUserRequest, githubToken, awsapmBranch);
+        // Debug logging for prompt content
+        core.debug(`Full prompt content:\n${finalPrompt}`);
         fs.writeFileSync(promptFile, finalPrompt);
       } catch (promptError) {
         core.error(`Failed to generate dynamic prompt: ${promptError.message}`);
@@ -270,6 +273,7 @@ async function run() {
     }
 
     // Set outputs
+    core.setOutput('contains_trigger', 'true'); // Explicitly set to true since we got here
     core.setOutput('GITHUB_TOKEN', githubToken);
     core.setOutput('AWSAPM_BRANCH', awsapmBranch);
     core.setOutput('TARGET_BRANCH', actualTargetBranch);

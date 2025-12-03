@@ -127,10 +127,6 @@ async function run() {
       result = `${resultMarker}\n\n${result}`;
     }
 
-    // Debug: Log what we're posting
-    core.debug(`Result length: ${result.length} characters`);
-    core.debug(`First 500 chars of result: ${result.substring(0, 500)}`);
-
     // Post result to GitHub
     const octokit = github.getOctokit(githubToken);
     const [owner, repo] = repository.split('/');
@@ -149,6 +145,9 @@ async function run() {
 
     core.info(`Updating comment ${commentId} in ${owner}/${repo}`);
     core.info(`Comment body length: ${commentBody.length} characters`);
+
+    // Debug logging for comment body content
+    core.debug(`Full comment body:\n${commentBody}`);
 
     const response = await octokit.rest.issues.updateComment({
       owner,

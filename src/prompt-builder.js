@@ -214,6 +214,14 @@ async function createAWSAPMPrompt(context, repoInfo, userRequest = '', githubTok
   let eventType = '';
   let triggerContext = '';
   let commentBody = '';
+  let issueBody = '';
+
+  // Always try to get the issue/PR body for context
+  if (payload.issue) {
+    issueBody = payload.issue.body || '';
+  } else if (payload.pull_request) {
+    issueBody = payload.pull_request.body || '';
+  }
 
   if (eventName === 'issue_comment') {
     eventType = isPR ? 'GENERAL_COMMENT' : 'GENERAL_COMMENT';
@@ -241,7 +249,9 @@ Size: ${repoInfo?.size || 0} KB
 File Count: ${repoInfo?.fileCount || 0}
 Topics: ${repoInfo?.topics?.join(', ') || 'None'}`;
 
+  // Include both issue body and trigger comment for full context
   const formattedBody = userRequest || commentBody || 'No description provided';
+  const formattedIssueBody = issueBody || 'No issue description provided';
 
   // Get conversation context from previous comments
   const conversationComments = await fetchGitHubConversation(context, githubToken);
@@ -283,9 +293,13 @@ ${file.patch}
 ${formattedContext}
 </formatted_context>
 
-<pr_or_issue_body>
+<issue_or_pr_description>
+${formattedIssueBody}
+</issue_or_pr_description>
+
+<trigger_comment>
 ${formattedBody}
-</pr_or_issue_body>
+</trigger_comment>
 
 <comments>
 ${formattedComments}
@@ -388,8 +402,8 @@ Follow these steps:
       - Provide recommendations specific to the codebase
       - Reference specific files and code sections when applicable
 
-5. When to Create Pull Requests:
-   Create pull requests and implement code changes when the user's request implies action, such as:
+5. When to Create Pull Requests(PR):
+   You MUST create pull requests and implement code changes when the user's request implies action, such as:
    - Requests to fix issues (e.g., "fix the sqs issue", "resolve the bug", "patch the vulnerability")
    - Implementation requests (e.g., "implement feature X", "add support for Y", "enable Z")
    - Direct PR requests (e.g., "create a PR", "submit a pull request", "make the changes")
@@ -400,12 +414,28 @@ Follow these steps:
    - Requesting analysis only (e.g., "analyze the issue", "review the code", "investigate the problem")
    - Explicitly asking NOT to implement (e.g., "just explain", "don't change anything", "analysis only")
 
-   If implementing code changes:
+   Follow the steps below to create a Pull Request(PR):
    Step 1: Create branch using the EXACT branch name: "${actualBranchName}" (mcp__github__create_branch)
    Step 2: Update files on this branch (mcp__github__create_or_update_file)
    Step 3: Create PR from this branch to target branch (mcp__github__create_pull_request)
 
+   NOTE: When making file changes, use mcp__github__create_or_update_file instead of Edit/MultiEdit tools
+   Step 4: WAIT for the mcp__github__create_pull_request tool to return the actual PR URL
+   Step 5: ONLY THEN write your final Investigation Result including the real PR URL
+
+   CRITICAL RULES - VIOLATION WILL RESULT IN INCORRECT OUTPUT:
+   - You MUST call mcp__github__create_pull_request and wait for its response
+   - The tool response will contain the actual PR URL (e.g., "https://github.com/owner/repo/pull/123")
+   - FORBIDDEN: Writing PR URLs like "https://github.com/owner/repo/pull/4" without calling the tool
+   - FORBIDDEN: Guessing PR numbers or fabricating PR links
+   - FORBIDDEN: Saying "PR: #4" or any PR number before the tool returns it
+   - REQUIRED: Use the EXACT URL returned by mcp__github__create_pull_request in your final summary
+   - If the tool fails, say "PR creation failed" - do NOT make up a PR link
+   - Your Investigation Result MUST be the LAST thing you output, after ALL tool calls complete
+
 6. Deliver Results:
+   - BEFORE writing your Investigation Result: Verify you have called ALL required tools and received their responses
+   - If you created a PR, verify you have the actual PR URL from the mcp__github__create_pull_request response
    - [CRITICAL!] Start your response with EXACTLY this line as the very first line:
      🎯 **Application observability for AWS Investigation Result**
    - This marker MUST be the first line of your response (no content before it)
@@ -435,6 +465,10 @@ What You FOCUS On:
 - Code quality and best practices
 - Technology-specific recommendations
 - Clear explanations and examples
+
+TOOL USAGE CONSTRAINTS:
+- Prefer using Grep tool directly instead of piped grep commands when possible
+- Use simple, single-purpose commands without complex piping when feasible
 
 Provide practical, actionable recommendations specific to this repository's technology stack and use case.`;
 
